@@ -4,7 +4,8 @@ import t from 'typy';
 const DEFAULT_OPTIONS = {
   maxAttempts: 3,
   waitTime: 0,
-  errorCodes: []
+  errorCodes: [],
+  onRetry: function(error){}
 };
 
 const ALLOWED_RETRY_METHODS = ['get', 'put', 'delete', 'head', 'options'];
@@ -39,7 +40,8 @@ const axiosRetryInterceptor = (axios, options = {}) => {
       ? options.maxAttempts
       : DEFAULT_OPTIONS.maxAttempts,
     waitTime: t(options.waitTime).isNumber ? options.waitTime : DEFAULT_OPTIONS.waitTime,
-    errorCodes: t(options.errorCodes).isArray ? options.errorCodes : DEFAULT_OPTIONS.errorCodes
+    errorCodes: t(options.errorCodes).isArray ? options.errorCodes : DEFAULT_OPTIONS.errorCodes,
+    onRetry: t(options.onRetry).isFunction ? options.onRetry : DEFAULT_OPTIONS.onRetry
   };
 
   axios.interceptors.request.use(
@@ -53,6 +55,8 @@ const axiosRetryInterceptor = (axios, options = {}) => {
       error.config.__retryCount = retryCount + 1;
       error.config.__isRetryRequest = true;
       const waitTime = t(error.config.waitTime).isNumber ? error.config.waitTime : 0;
+
+      error.config.onRetry(error);
 
       if (waitTime > 0) {
         // eslint-disable-next-line no-unused-vars
